@@ -1,0 +1,25 @@
+GIT
+  remote: git://github.com/jvdp/harvested.git
+  revision: 1c886f7554fed786d041ffc11a5718907fe9f303
+  specs:
+    harvested (0.6.4)
+      hashie (~> 1)
+      httparty
+      json
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    hashie (1.2.0)
+    httparty (0.10.0)
+      multi_json (~> 1.0)
+      multi_xml
+    json (1.7.6)
+    multi_json (1.5.0)
+    multi_xml (0.5.2)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  harvested!

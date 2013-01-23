@@ -1,0 +1,75 @@
+#!/usr/bin/env ruby
+require 'time'
+require 'date'
+require 'fileutils'
+require 'delegate'
+require File.expand_path("./lib/lazy_delegator", File.dirname(__FILE__))
+
+# TODO:
+# header in de txt met:
+# ~handle       client project task
+# @alias        handle
+
+filename = File.expand_path("~/harvest.txt")
+FileUtils.mkdir_p backups_path = File.expand_path("~/.harvest_backups")
+
+credentials = LazyDelegator.new do
+  require 'yaml'
+  YAML.load_file(File.expand_path('credentials.yml', File.dirname(__FILE__)))
+end
+
+record = LazyDelegator.new do
+  require File.expand_path("./lib/record", File.dirname(__FILE__))
+  FileUtils.touch(filename) if !File.exists? filename
+  File.open(filename, "r") { |f| Record.new(f) }
+end
+
+tasks = LazyDelegator.new do
+  require File.expand_path("./lib/tasks", File.dirname(__FILE__))
+  require 'bundler'
+  Dir.chdir(File.dirname(__FILE__)) { Bundler.require(:default) }
+  Tasks.new(credentials[:subdomain], credentials[:username], credentials[:password])
+end
+
+case ARGV[0]
+when "open", nil
+  exec "#{ENV['EDITOR']} #{filename}"
+
+when "sync"
+  exit if record.synced?
+  FileUtils.cp filename, File.expand_path("#{backups_path}/#{Time.now.strftime('%Y%m%d%H%M%S')}.txt")
+  begin
+    record.sync(tasks)
+  ensure
+    record.write(File.open(filename, "w"))
+  end
+
+when "backups"
+  exec "open #{backups_path}"
+
+when "dry"
+  exit if record.synced?
+  record.entries.reject(&:synced).each do |entry|
+    entry.dump(tasks)
+  end
+
+when "tail"
+  amount = (ARGV[1] || 10).to_i
+  record.entries.select(&:synced).last(amount).each do |entry|
+    entry.dump(tasks)
+  end
+
+when 'dump'
+  record.entries.each do |entries|
+    entries.dump(tasks)
+  end
+
+else
+  puts "  hrv [open]      \t open #{filename} with #{ENV['EDITOR']}"
+  puts "  hrv sync        \t sync to harvest as #{credentials[:username]} (#{credentials[:subdomain]})"
+  puts "  hrv dry         \t see what can be synced"
+  puts "  hrv tail [n=10] \t last n synced entries"
+  puts "  hrv dump        \t dump all entries"
+  puts "  hrv backups     \t open backups directory"
+
+end
