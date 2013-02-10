@@ -2,74 +2,84 @@
 require 'time'
 require 'date'
 require 'fileutils'
-require 'delegate'
-require File.expand_path("./lib/lazy_delegator", File.dirname(__FILE__))
+require 'yaml'
+require 'thor'
 
 # TODO:
 # header in de txt met:
 # ~handle       client project task
 # @alias        handle
 
-filename = File.expand_path("~/harvest.txt")
-FileUtils.mkdir_p backups_path = File.expand_path("~/.harvest_backups")
+class Hrv < Thor
+  FILENAME = File.expand_path("~/harvest.txt")
+  BACKUPS_PATH = File.expand_path("~/.harvest_backups")
+  CREDENTIALS = YAML.load_file(File.expand_path('credentials.yml', File.dirname(__FILE__)))
 
-credentials = LazyDelegator.new do
-  require 'yaml'
-  YAML.load_file(File.expand_path('credentials.yml', File.dirname(__FILE__)))
-end
+  default_task :open
 
-record = LazyDelegator.new do
-  require File.expand_path("./lib/record", File.dirname(__FILE__))
-  FileUtils.touch(filename) if !File.exists? filename
-  File.open(filename, "r") { |f| Record.new(f) }
-end
-
-tasks = LazyDelegator.new do
-  require File.expand_path("./lib/tasks", File.dirname(__FILE__))
-  require 'bundler'
-  Dir.chdir(File.dirname(__FILE__)) { Bundler.require(:default) }
-  Tasks.new(credentials[:subdomain], credentials[:username], credentials[:password])
-end
-
-case ARGV[0]
-when "open", nil
-  exec "#{ENV['EDITOR']} #{filename}"
-
-when "sync"
-  exit if record.synced?
-  FileUtils.cp filename, File.expand_path("#{backups_path}/#{Time.now.strftime('%Y%m%d%H%M%S')}.txt")
-  begin
-    record.sync(tasks)
-  ensure
-    record.write(File.open(filename, "w"))
+  desc "open", "open #{FILENAME} with #{ENV['EDITOR']}"
+  def open
+    exec "#{ENV['EDITOR']} #{FILENAME}"
   end
 
-when "backups"
-  exec "open #{backups_path}"
-
-when "dry"
-  exit if record.synced?
-  record.entries.reject(&:synced).each do |entry|
-    entry.dump(tasks)
+  desc "sync", "sync to harvest as #{CREDENTIALS[:username]} (#{CREDENTIALS[:subdomain]})"
+  def sync
+    exit if record.synced?
+    FileUtils.mkdir_p BACKUPS_PATH
+    FileUtils.cp FILENAME, File.expand_path("#{BACKUPS_PATH}/#{Time.now.strftime('%Y%m%d%H%M%S')}.txt")
+    begin
+      record.sync(tasks)
+    ensure
+      record.write(File.open(FILENAME, "w"))
+    end
   end
 
-when "tail"
-  amount = (ARGV[1] || 10).to_i
-  record.entries.select(&:synced).last(amount).each do |entry|
-    entry.dump(tasks)
+  desc "backups", "open backups directory"
+  def backups
+    exec "open #{backups_path}"
   end
 
-when 'dump'
-  record.entries.each do |entries|
-    entries.dump(tasks)
+  desc "dry", "see what can be synced"
+  def dry
+    exit if record.synced?
+    record.entries.reject(&:synced).each do |entry|
+      entry.dump(tasks)
+    end
   end
 
-else
-  puts "  hrv [open]      \t open #{filename} with #{ENV['EDITOR']}"
-  puts "  hrv sync        \t sync to harvest as #{credentials[:username]} (#{credentials[:subdomain]})"
-  puts "  hrv dry         \t see what can be synced"
-  puts "  hrv tail [n=10] \t last n synced entries"
-  puts "  hrv dump        \t dump all entries"
-  puts "  hrv backups     \t open backups directory"
+  desc "tail [n=10]", "last n synced entries"
+  def tail(n=10)
+    amount = (ARGV[1] || 10).to_i
+    record.entries.select(&:synced).last(amount).each do |entry|
+      entry.dump(tasks)
+    end
+  end
 
+  desc "dump", "dump all entries"
+  def dump
+    record.entries.each do |entries|
+      entries.dump(tasks)
+    end
+  end
+
+  private
+
+  def record
+    @_record ||= begin
+      require File.expand_path("./lib/record", File.dirname(__FILE__))
+      FileUtils.touch(FILENAME) if !File.exists? FILENAME
+      File.open(FILENAME, "r") { |f| Record.new(f) }
+    end
+  end
+
+  def tasks
+    @_tasks ||= begin
+      require File.expand_path("./lib/tasks", File.dirname(__FILE__))
+      require 'bundler'
+      Dir.chdir(File.dirname(__FILE__)) { Bundler.require(:default) }
+      Tasks.new(CREDENTIALS[:subdomain], CREDENTIALS[:username], CREDENTIALS[:password])
+    end
+  end
 end
+
+Hrv.start(ARGV)
