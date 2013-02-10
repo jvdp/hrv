@@ -3,7 +3,7 @@ class Tasks
 
   def initialize(subdomain, username, password)
     @harvest = Harvest.client(subdomain, username, password)
-    @projects = @harvest.daily.today.projects
+    @projects = @harvest.time.trackable_projects
   end
 
   def find(handle)
