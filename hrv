@@ -64,6 +64,21 @@ when 'dump'
     entries.dump(tasks)
   end
 
+when 'days'
+  amount = (ARGV[1] || 10).to_i
+  days = Hash.new(0)
+  record.days.each {|e| days[e.date] += e.hours }
+  days.to_a.last(amount).each do |date,hours|
+    puts "%2s %-9s %s: %.2f" % [date.day, Record::Day::MONTHS[date.month], date.year, hours]
+  end
+
+when 'months'
+  months = Hash.new(0)
+  record.days.each {|e| months[[e.date.month, e.date.year]] += e.hours }
+  months.each do |(month, year),hours|
+    puts "%-9s %s: %.2f" % [Record::Day::MONTHS[month], year, hours]
+  end
+
 else
   puts "  hrv [open]      \t open #{filename} with #{ENV['EDITOR']}"
   puts "  hrv sync        \t sync to harvest as #{credentials[:username]} (#{credentials[:subdomain]})"
@@ -71,5 +86,7 @@ else
   puts "  hrv tail [n=10] \t last n synced entries"
   puts "  hrv dump        \t dump all entries"
   puts "  hrv backups     \t open backups directory"
+  puts "  hrv days [n=10] \t breakdown of hours per day (for last n days)"
+  puts "  hrv months      \t breakdown of hours per month"
 
 end

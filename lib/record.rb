@@ -2,19 +2,21 @@ class Record
   REGEXES = {
     synced: /^---.*$/,
     day: /
-      ^(?<dayno>\d{1,2})
+      ^\s*
+      (?<dayno>\d{1,2})
       \s+
       (?<month>[a-z]+)
       .*$
     /xi,
     entry: /
-      ^(?<from>\d\d:\d\d)
+      ^\s*
+      (?<from>\d\d:\d\d)
       \s+-\s+
       (?<to>\d\d:\d\d)
       \s+
       (?<task>\S+)
       \s*
-      (?<desc>[^#]*)
+      (?<desc>.*)
       .*$
     /x
   }
@@ -40,6 +42,10 @@ class Record
     @lines.select {|l| l.is_a? Entry }
   end
 
+  def days
+    @lines.select {|l| l.is_a? Day }
+  end
+
   def write(out = $stdout)
     synced = true
     @lines.each do |line|
@@ -58,7 +64,7 @@ class Record
     when REGEXES[:synced]
       @synced = false
     when REGEXES[:day]
-      add_line @day = Day.new($~)
+      add_line @day = Day.new($~, @day)
     when REGEXES[:entry]
       add_line @day.new_entry($~)
     else
@@ -88,39 +94,60 @@ class Record
   class Entry < Line
     def initialize(match, day)
       super match.to_s
-      @from = Time.parse(match[:from], day)
-      @to   = Time.parse(match[:to],   day)
-      @to   = Time.parse(match[:to],   day + 1) if @to < @from
-      @task = match[:task]
-      @desc = match[:desc].length > 0 ? match[:desc] : @task
+      @day = day
+      @from_s = match[:from]
+      @to_s   = match[:to]
+      @task   = match[:task]
+      @desc   = match[:desc].length > 0 ? match[:desc] : @task
       @synced = false
     end
 
+    def from
+      Time.parse(@from_s, @day.date)
+    end
+
+    def to
+      Time.parse @to_s, @day.date + (@to_s < @from_s ? 1 : 0)
+    end
+
     def dump(tasks)
-      tasks.dump(@task, @from, hours, @desc)
+      tasks.dump(@task, from, hours, @desc)
     end
 
     def sync(tasks)
       dump tasks
-      tasks.post(@task, @from, hours, @desc)
+      tasks.post(@task, from, hours, @desc)
       super
     end
 
     def hours
-      (@to - @from) / 3600
+      (to - from) / 3600
     end
   end
 
   class Day < Line
     MONTHS = %w[_ januari februari maart april mei juni juli augustus september oktober november december]
-
-    def initialize(match)
-      @date = Date.new(Date.today.year, MONTHS.index(match[:month].downcase), match[:dayno].to_i)
+    attr_reader :monthno, :year
+    
+    def initialize(match, prev_day)
+      @year = Date.today.year
+      @prev_day = prev_day
+      @monthno, @dayno = MONTHS.index(match[:month].downcase), match[:dayno].to_i
+      @prev_day.decrease_year! if prev_day && prev_day.monthno > @monthno
       @entries = []
     end
 
+    def decrease_year!
+      @year -= 1
+      @prev_day.decrease_year! if @prev_day
+    end
+
+    def date
+      Date.new(@year, @monthno, @dayno)
+    end
+
     def new_entry(match)
-      Entry.new(match, @date).tap {|e| @entries << e }
+      Entry.new(match, self).tap {|e| @entries << e }
     end
 
     def hours
@@ -128,7 +155,7 @@ class Record
     end
 
     def to_s
-      "%s %s (%.2f uur)" % [@date.day, MONTHS[@date.month], hours]
+      "%s %s (%.2f uur)" % [date.day, MONTHS[date.month], hours]
     end
   end
 end
