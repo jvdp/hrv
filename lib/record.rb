@@ -28,6 +28,7 @@ class Record
     @synced = true
     @day = nil
     io.each_line &method(:parse_line)
+    @day.decrease_year! if @day && @day.date > Date.today
   end
 
   def synced?
@@ -130,10 +131,10 @@ class Record
     attr_reader :monthno, :year
     
     def initialize(match, prev_day)
-      @year = Date.today.year
       @prev_day = prev_day
       @monthno, @dayno = MONTHS.index(match[:month].downcase), match[:dayno].to_i
-      @prev_day.decrease_year! if prev_day && prev_day.monthno > @monthno
+      @year = Date.today.year
+      @prev_day.decrease_year! if prev_day && prev_day.date > date
       @entries = []
     end
 
