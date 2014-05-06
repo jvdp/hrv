@@ -7,9 +7,9 @@ class Tasks
   end
 
   def find(handle)
-    fix = -> n { n.split.join.downcase.gsub(/\[[^\]]*\]|\W/, "") }
+    regex = Regexp.new(handle.split("-").map(&Regexp.method(:escape)).join(".*"), "i")
     @projects.find do |project|
-      fix[project.client + project.name].include? fix[handle]
+      (project.client + project.name).gsub(/\W/, "") =~ regex
     end
   end
 
