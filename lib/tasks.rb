@@ -1,8 +1,8 @@
 class Tasks
   attr_reader :projects
 
-  def initialize(subdomain, username, password)
-    @harvest = Harvest.client(subdomain, username, password)
+  def initialize(harvest)
+    @harvest = harvest
     @projects = @harvest.time.trackable_projects
   end
 

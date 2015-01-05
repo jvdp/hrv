@@ -104,11 +104,11 @@ class Record
     end
 
     def from
-      Time.parse(@from_s, @day.date)
+      Time.parse(@from_s, @day.date.to_time)
     end
 
     def to
-      Time.parse @to_s, @day.date + (@to_s < @from_s ? 1 : 0)
+      Time.parse @to_s, (@day.date + (@to_s < @from_s ? 1 : 0)).to_time
     end
 
     def dump(tasks)

@@ -28,7 +28,11 @@ tasks = LazyDelegator.new do
   require File.expand_path("./lib/tasks", File.dirname(__FILE__))
   require 'bundler'
   Dir.chdir(File.dirname(__FILE__)) { Bundler.require(:default) }
-  Tasks.new(credentials[:subdomain], credentials[:username], credentials[:password])
+  Tasks.new Harvest.client(
+    subdomain: credentials[:subdomain],
+    username: credentials[:username],
+    password: credentials[:password]
+  )
 end
 
 case ARGV[0]
