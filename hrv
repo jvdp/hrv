@@ -76,21 +76,31 @@ when 'days'
     puts "%2s %-9s %s: %.2f" % [date.day, Record::Day::MONTHS[date.month], date.year, hours]
   end
 
+when "weeks"
+  amount = (ARGV[1] || 10).to_i
+  weeks = Hash.new(0)
+  record.days.each {|e| weeks[[e.date.cweek, e.date.year]] += e.hours }
+  weeks.to_a.last(amount).each do |(week,year),hours|
+    puts "week %2s of %s: %.2f" % [week, year, hours]
+  end
+
 when 'months'
+  amount = (ARGV[1] || 10).to_i
   months = Hash.new(0)
   record.days.each {|e| months[[e.date.month, e.date.year]] += e.hours }
-  months.each do |(month, year),hours|
+  months.to_a.last(amount).each do |(month, year),hours|
     puts "%-9s %s: %.2f" % [Record::Day::MONTHS[month], year, hours]
   end
 
 else
-  puts "  hrv [open]      \t open #{filename} with #{ENV['EDITOR']}"
-  puts "  hrv sync        \t sync to harvest as #{credentials[:username]} (#{credentials[:subdomain]})"
-  puts "  hrv dry         \t see what can be synced"
-  puts "  hrv tail [n=10] \t last n synced entries"
-  puts "  hrv dump        \t dump all entries"
-  puts "  hrv backups     \t open backups directory"
-  puts "  hrv days [n=10] \t breakdown of hours per day (for last n days)"
-  puts "  hrv months      \t breakdown of hours per month"
+  puts "  hrv [open]        \t open #{filename} with #{ENV['EDITOR']}"
+  puts "  hrv sync          \t sync to harvest as #{credentials[:username]} (#{credentials[:subdomain]})"
+  puts "  hrv dry           \t see what can be synced"
+  puts "  hrv tail [n=10]   \t last n synced entries"
+  puts "  hrv dump          \t dump all entries"
+  puts "  hrv backups       \t open backups directory"
+  puts "  hrv days [n=10]   \t breakdown of hours per day (for last n days)"
+  puts "  hrv weeks [n=10]  \t breakdown of hours per week (for last n weeks)"
+  puts "  hrv months [n=10] \t breakdown of hours per month (for last n months)"
 
 end
