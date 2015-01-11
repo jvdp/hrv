@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
-require 'time'
-require 'date'
-require 'fileutils'
-require 'delegate'
+require "time"
+require "date"
+require "fileutils"
+require "delegate"
 require File.expand_path("./lib/lazy_delegator", File.dirname(__FILE__))
 
 # TODO:
@@ -14,8 +14,8 @@ filename = File.expand_path("~/harvest.txt")
 FileUtils.mkdir_p backups_path = File.expand_path("~/.harvest_backups")
 
 credentials = LazyDelegator.new do
-  require 'yaml'
-  YAML.load_file(File.expand_path('credentials.yml', File.dirname(__FILE__)))
+  require "yaml"
+  YAML.load_file(File.expand_path("credentials.yml", File.dirname(__FILE__)))
 end
 
 record = LazyDelegator.new do
@@ -26,7 +26,7 @@ end
 
 tasks = LazyDelegator.new do
   require File.expand_path("./lib/tasks", File.dirname(__FILE__))
-  require 'bundler'
+  require "bundler"
   Dir.chdir(File.dirname(__FILE__)) { Bundler.require(:default) }
   Tasks.new Harvest.client(
     subdomain: credentials[:subdomain],
@@ -63,12 +63,12 @@ when "tail"
     entry.dump(tasks)
   end
 
-when 'dump'
+when "dump"
   record.entries.each do |entries|
     entries.dump(tasks)
   end
 
-when 'days'
+when "days"
   amount = (ARGV[1] || 10).to_i
   days = Hash.new(0)
   record.days.each {|e| days[e.date] += e.hours }
@@ -84,7 +84,7 @@ when "weeks"
     puts "week %2s of %s: %.2f" % [week, year, hours]
   end
 
-when 'months'
+when "months"
   amount = (ARGV[1] || 10).to_i
   months = Hash.new(0)
   record.days.each {|e| months[[e.date.month, e.date.year]] += e.hours }
@@ -93,14 +93,15 @@ when 'months'
   end
 
 else
-  puts "  hrv [open]        \t open #{filename} with #{ENV['EDITOR']}"
-  puts "  hrv sync          \t sync to harvest as #{credentials[:username]} (#{credentials[:subdomain]})"
-  puts "  hrv dry           \t see what can be synced"
-  puts "  hrv tail [n=10]   \t last n synced entries"
-  puts "  hrv dump          \t dump all entries"
-  puts "  hrv backups       \t open backups directory"
-  puts "  hrv days [n=10]   \t breakdown of hours per day (for last n days)"
-  puts "  hrv weeks [n=10]  \t breakdown of hours per week (for last n weeks)"
-  puts "  hrv months [n=10] \t breakdown of hours per month (for last n months)"
-
+  puts <<-HELP
+  hrv [open]        \t # open #{filename} with #{ENV['EDITOR']}
+  hrv sync          \t # sync to harvest as #{credentials[:username]} (#{credentials[:subdomain]})
+  hrv dry           \t # see what can be synced
+  hrv tail [n=10]   \t # last n synced entries
+  hrv dump          \t # dump all entries
+  hrv backups       \t # open backups directory
+  hrv days [n=10]   \t # breakdown of hours per day (for last n days)
+  hrv weeks [n=10]  \t # breakdown of hours per week (for last n weeks)
+  hrv months [n=10] \t # breakdown of hours per month (for last n months)
+  HELP
 end
