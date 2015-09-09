@@ -2,32 +2,35 @@
 require "time"
 require "date"
 require "fileutils"
+require "pathname"
 require "delegate"
-require File.expand_path("./lib/lazy_delegator", File.dirname(__FILE__))
+require_relative "lib/lazy_delegator"
 
 # TODO:
 # header in de txt met:
 # ~handle       client project task
 # @alias        handle
 
-filename = File.expand_path("~/harvest.txt")
-FileUtils.mkdir_p backups_path = File.expand_path("~/.harvest_backups")
+dist_path = Pathname.new(__FILE__).realpath.dirname
+
+filename = Pathname.new("~/harvest.txt").expand_path
+FileUtils.mkdir_p backups_path = Pathname.new("~/.harvest_backups").expand_path
 
 credentials = LazyDelegator.new do
   require "yaml"
-  YAML.load_file(File.expand_path("credentials.yml", File.dirname(__FILE__)))
+  YAML.load_file dist_path + "credentials.yml"
 end
 
 record = LazyDelegator.new do
-  require File.expand_path("./lib/record", File.dirname(__FILE__))
+  require_relative "lib/record"
   FileUtils.touch(filename) if !File.exists? filename
   File.open(filename, "r") { |f| Record.new(f) }
 end
 
 tasks = LazyDelegator.new do
-  require File.expand_path("./lib/tasks", File.dirname(__FILE__))
+  require_relative "lib/tasks"
   require "bundler"
-  Dir.chdir(File.dirname(__FILE__)) { Bundler.require(:default) }
+  Dir.chdir(dist_path) { Bundler.require(:default) }
   Tasks.new Harvest.client(
     subdomain: credentials[:subdomain],
     username: credentials[:username],
@@ -41,7 +44,7 @@ when "open", nil
 
 when "sync"
   exit if record.synced?
-  FileUtils.cp filename, File.expand_path("#{backups_path}/#{Time.now.strftime('%Y%m%d%H%M%S')}.txt")
+  FileUtils.cp filename, backups_path + "#{Time.now.strftime('%Y%m%d%H%M%S')}.txt"
   begin
     record.sync(tasks)
   ensure
