@@ -1,19 +1,22 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    harvested (3.1.0)
+    harvested (3.1.1)
       hashie
       httparty
       json
-    hashie (3.3.2)
-    httparty (0.13.3)
+    hashie (3.4.4)
+    httparty (0.13.7)
       json (~> 1.8)
       multi_xml (>= 0.5.2)
-    json (1.8.1)
+    json (1.8.3)
     multi_xml (0.5.5)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  harvested (~> 3.1.0)
+  harvested (~> 3.1.1)
+
+BUNDLED WITH
+   1.12.3

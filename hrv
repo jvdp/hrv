@@ -95,6 +95,11 @@ when "months"
     puts "%-9s %s: %.2f" % [Record::Day::MONTHS[month], year, hours]
   end
 
+when "install"
+  Dir.chdir dist_path do
+    system "bundle update"
+  end
+
 else
   puts <<-HELP
   hrv [open]        \t # open #{filename} with #{ENV['EDITOR']}
@@ -106,5 +111,6 @@ else
   hrv days [n=10]   \t # breakdown of hours per day (for last n days)
   hrv weeks [n=10]  \t # breakdown of hours per week (for last n weeks)
   hrv months [n=10] \t # breakdown of hours per month (for last n months)
+  hrv install       \t # install dependencies though bundler
   HELP
 end

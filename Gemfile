@@ -1,3 +1,3 @@
 source "https://rubygems.org"
 
-gem "harvested", "~> 3.1.0"
+gem "harvested", "~> 3.1.1"
